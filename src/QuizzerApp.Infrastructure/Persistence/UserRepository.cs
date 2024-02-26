@@ -7,9 +7,15 @@ using QuizzerApp.Infrastructure.EFCore.Contexts;
 
 namespace QuizzerApp.Infrastructure.Persistence;
 
-public class UserRepository(QuizzerAppContext context) : RepositoryBase<User>(context), IUserRepository
+public class UserRepository : RepositoryBase<User>, IUserRepository
 {
-    private readonly QuizzerAppContext _context = context;
+    private readonly QuizzerAppContext _context ;
+    public UserRepository(QuizzerAppContext context) : base(context)
+    {
+        _context = context;    
+    }
+
+    
 
     public bool CheckIsExist(string userId) => FindByCondition(u => u.Id == userId, false) is not null;
 

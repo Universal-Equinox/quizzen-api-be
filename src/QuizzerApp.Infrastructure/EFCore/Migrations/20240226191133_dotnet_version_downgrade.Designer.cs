@@ -12,18 +12,17 @@ using QuizzerApp.Infrastructure.EFCore.Contexts;
 namespace QuizzerApp.Infrastructure.EFCore.Migrations
 {
     [DbContext(typeof(QuizzerAppContext))]
-    [Migration("20240113124954_QA_image_schema")]
-    partial class QA_image_schema
+    [Migration("20240226191133_dotnet_version_downgrade")]
+    partial class dotnet_version_downgrade
     {
-        /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "7.0.13")
+                .HasAnnotation("ProductVersion", "6.0.0")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
-            SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+            SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder, 1L, 1);
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
                 {
@@ -58,7 +57,7 @@ namespace QuizzerApp.Infrastructure.EFCore.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
 
                     b.Property<string>("ClaimType")
                         .HasColumnType("nvarchar(max)");
@@ -147,8 +146,6 @@ namespace QuizzerApp.Infrastructure.EFCore.Migrations
                     b.ToTable("AspNetUsers", (string)null);
 
                     b.HasDiscriminator<string>("Discriminator").HasValue("IdentityUser");
-
-                    b.UseTphMappingStrategy();
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
@@ -157,7 +154,7 @@ namespace QuizzerApp.Infrastructure.EFCore.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
 
                     b.Property<string>("ClaimType")
                         .HasColumnType("nvarchar(max)");
@@ -287,7 +284,7 @@ namespace QuizzerApp.Infrastructure.EFCore.Migrations
 
                     b.HasIndex("AnswerId");
 
-                    b.ToTable("AnswerImage");
+                    b.ToTable("AnswerImages", (string)null);
                 });
 
             modelBuilder.Entity("QuizzenApp.Domain.Entities.AnswerAggregate.AnswerVote", b =>
@@ -447,7 +444,7 @@ namespace QuizzerApp.Infrastructure.EFCore.Migrations
 
                     b.HasIndex("QuestionId");
 
-                    b.ToTable("QuestionImage");
+                    b.ToTable("QuestionImages", (string)null);
                 });
 
             modelBuilder.Entity("QuizzenApp.Domain.Entities.QuestionAggregate.QuestionVote", b =>
@@ -560,7 +557,7 @@ namespace QuizzerApp.Infrastructure.EFCore.Migrations
                     b.HasOne("QuizzenApp.Domain.Entities.QuestionAggregate.Question", "Question")
                         .WithMany("Answers")
                         .HasForeignKey("QuestionId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.HasOne("QuizzenApp.Domain.Entities.UserAggregate.User", "User")

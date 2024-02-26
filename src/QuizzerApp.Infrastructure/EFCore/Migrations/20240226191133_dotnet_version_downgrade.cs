@@ -5,10 +5,8 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace QuizzerApp.Infrastructure.EFCore.Migrations
 {
-    /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class dotnet_version_downgrade : Migration
     {
-        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
@@ -64,6 +62,7 @@ namespace QuizzerApp.Infrastructure.EFCore.Migrations
                 {
                     Id = table.Column<string>(type: "varchar(255)", nullable: false),
                     Discriminator = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ProfileImg = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     FirstName = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     LastName = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     ExamId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
@@ -295,6 +294,105 @@ namespace QuizzerApp.Infrastructure.EFCore.Migrations
                         principalColumn: "Id");
                 });
 
+            migrationBuilder.CreateTable(
+                name: "QuestionImages",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    QuestionId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ImgPath = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_QuestionImages", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_QuestionImages_Questions_QuestionId",
+                        column: x => x.QuestionId,
+                        principalTable: "Questions",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "QuestionVotes",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    QuestionId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    UserId = table.Column<string>(type: "varchar(255)", nullable: false),
+                    VoteType = table.Column<int>(type: "int", nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_QuestionVotes", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_QuestionVotes_AspNetUsers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_QuestionVotes_Questions_QuestionId",
+                        column: x => x.QuestionId,
+                        principalTable: "Questions",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "AnswerImages",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    AnswerId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ImgPath = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AnswerImages", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_AnswerImages_Answers_AnswerId",
+                        column: x => x.AnswerId,
+                        principalTable: "Answers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "AnswerVotes",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    AnswerId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    UserId = table.Column<string>(type: "varchar(255)", nullable: false),
+                    VoteType = table.Column<int>(type: "int", nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AnswerVotes", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_AnswerVotes_Answers_AnswerId",
+                        column: x => x.AnswerId,
+                        principalTable: "Answers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_AnswerVotes_AspNetUsers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AnswerImages_AnswerId",
+                table: "AnswerImages",
+                column: "AnswerId");
+
             migrationBuilder.CreateIndex(
                 name: "IX_Answers_QuestionId",
                 table: "Answers",
@@ -303,6 +401,16 @@ namespace QuizzerApp.Infrastructure.EFCore.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_Answers_UserId",
                 table: "Answers",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AnswerVotes_AnswerId",
+                table: "AnswerVotes",
+                column: "AnswerId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AnswerVotes_UserId",
+                table: "AnswerVotes",
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
@@ -350,6 +458,11 @@ namespace QuizzerApp.Infrastructure.EFCore.Migrations
                 filter: "[NormalizedUserName] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
+                name: "IX_QuestionImages_QuestionId",
+                table: "QuestionImages",
+                column: "QuestionId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Questions_ExamId",
                 table: "Questions",
                 column: "ExamId");
@@ -370,6 +483,16 @@ namespace QuizzerApp.Infrastructure.EFCore.Migrations
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_QuestionVotes_QuestionId",
+                table: "QuestionVotes",
+                column: "QuestionId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_QuestionVotes_UserId",
+                table: "QuestionVotes",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Subjects_ExamId",
                 table: "Subjects",
                 column: "ExamId");
@@ -385,11 +508,13 @@ namespace QuizzerApp.Infrastructure.EFCore.Migrations
                 column: "SubjectId");
         }
 
-        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "Answers");
+                name: "AnswerImages");
+
+            migrationBuilder.DropTable(
+                name: "AnswerVotes");
 
             migrationBuilder.DropTable(
                 name: "AspNetRoleClaims");
@@ -407,10 +532,19 @@ namespace QuizzerApp.Infrastructure.EFCore.Migrations
                 name: "AspNetUserTokens");
 
             migrationBuilder.DropTable(
-                name: "Questions");
+                name: "QuestionImages");
+
+            migrationBuilder.DropTable(
+                name: "QuestionVotes");
+
+            migrationBuilder.DropTable(
+                name: "Answers");
 
             migrationBuilder.DropTable(
                 name: "AspNetRoles");
+
+            migrationBuilder.DropTable(
+                name: "Questions");
 
             migrationBuilder.DropTable(
                 name: "AspNetUsers");
