@@ -8,8 +8,12 @@ using QuizzerApp.Infrastructure.EFCore.Contexts;
 
 namespace QuizzerApp.Infrastructure.Persistence;
 
-public class AnswerRepository(QuizzerAppContext context) : RepositoryBase<Answer>(context), IAnswerRepository
+public class AnswerRepository: RepositoryBase<Answer>, IAnswerRepository
 {
+    public AnswerRepository(QuizzerAppContext context) : base(context)
+    {
+        
+    }
     public async Task CreateAsync(Answer answer) => Create(answer);
 
     public void DeleteAsync(Answer answer)

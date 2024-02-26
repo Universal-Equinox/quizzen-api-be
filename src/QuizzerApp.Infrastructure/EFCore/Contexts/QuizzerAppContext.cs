@@ -8,8 +8,13 @@ using QuizzerApp.Infrastructure.EFCore.Config;
 
 namespace QuizzerApp.Infrastructure.EFCore.Contexts;
 
-public class QuizzerAppContext(DbContextOptions<QuizzerAppContext> options) : IdentityDbContext(options)
+public class QuizzerAppContext : IdentityDbContext
 {
+
+    public QuizzerAppContext(DbContextOptions<QuizzerAppContext> options) : base(options)
+    {
+
+    }
     protected override void OnModelCreating(ModelBuilder builder)
     {
         builder.ApplyConfiguration(new QuestionConfiguration());

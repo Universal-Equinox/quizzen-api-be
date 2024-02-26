@@ -15,7 +15,15 @@ namespace QuizzerApp.Infrastructure.EFCore.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
+<<<<<<< HEAD
             modelBuilder.HasAnnotation("ProductVersion", "7.0.13");
+=======
+            modelBuilder
+                .HasAnnotation("ProductVersion", "6.0.0")
+                .HasAnnotation("Relational:MaxIdentifierLength", 128);
+
+            SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder, 1L, 1);
+>>>>>>> cd3d295 (.NET 6 Downgrade)
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
                 {
@@ -47,7 +55,13 @@ namespace QuizzerApp.Infrastructure.EFCore.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
+<<<<<<< HEAD
                         .HasColumnType("INTEGER");
+=======
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
+>>>>>>> cd3d295 (.NET 6 Downgrade)
 
                     b.Property<string>("ClaimType")
                         .HasColumnType("TEXT");
@@ -135,15 +149,19 @@ namespace QuizzerApp.Infrastructure.EFCore.Migrations
                     b.ToTable("AspNetUsers", (string)null);
 
                     b.HasDiscriminator<string>("Discriminator").HasValue("IdentityUser");
-
-                    b.UseTphMappingStrategy();
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
+<<<<<<< HEAD
                         .HasColumnType("INTEGER");
+=======
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
+>>>>>>> cd3d295 (.NET 6 Downgrade)
 
                     b.Property<string>("ClaimType")
                         .HasColumnType("TEXT");
