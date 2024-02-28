@@ -11,4 +11,6 @@ public record QuestionDto(Guid Id,
                           UserDto User,
                           ExamDto Tags,
                           List<ImageDto> Images,
-                          DateTime CreatedDate);
+                          DateTime CreatedDate,
+                          int VoteCount,
+                          int AnswerCount);

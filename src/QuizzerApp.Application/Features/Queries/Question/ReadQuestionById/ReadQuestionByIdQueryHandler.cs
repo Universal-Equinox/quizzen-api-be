@@ -29,6 +29,8 @@ public class ReadQuestionQueryHandler : IRequestHandler<ReadQuestionByIdQuery, Q
                            .Include(q => q.Exam)
                            .Include(q => q.Subject)
                            .Include(q => q.Topic)
+                           .Include(q => q.QuestionVotes)
+                           .Include(q => q.Answers)
                            .FirstOrDefaultAsync(q => q.Id == new QuestionId(request.QuestionId), cancellationToken);
 
         if (dbQuestion is null) throw new NotFoundException("Question", request.QuestionId.ToString());
@@ -47,7 +49,10 @@ public class ReadQuestionQueryHandler : IRequestHandler<ReadQuestionByIdQuery, Q
                 Images: _manager.Photo.GetDbQuestionImgPaths(dbQuestion.Id.Value)
                                       .Select(img => new ImageDto(img.ImgPath))
                                       .ToList(),
-                CreatedDate: dbQuestion.CreatedDate);
+                CreatedDate: dbQuestion.CreatedDate,
+                VoteCount: dbQuestion.QuestionVotes.Select(qv => qv.QuestionId == dbQuestion.Id).Count(),
+                AnswerCount: dbQuestion.Answers.Select(a => a.QuestionId == dbQuestion.Id).Count()
+                );
 
         return res;
     }
