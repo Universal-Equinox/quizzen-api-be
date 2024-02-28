@@ -19,7 +19,7 @@ public static class Extensions
 
     public static void UseSqlLite(this IServiceCollection services)
     {
-        services.AddDbContext<QuizzerAppContext>(context => context.UseSqlite("Data Source=App.db"));
+        // services.AddDbContext<QuizzerAppContext>(context => context.UseSqlite("Data Source=App.db"));
 
     }
 
