@@ -12,5 +12,6 @@ public interface IQuestionRepository
     Task CreateAsync(Question question);
     void UpdateAsync(Question question);
     void DeleteAsync(Question question);
+    int GetQuestionVoteCount(Guid id);
 
 }
