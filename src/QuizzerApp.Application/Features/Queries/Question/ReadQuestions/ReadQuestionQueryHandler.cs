@@ -39,6 +39,8 @@ public class ReadQuestionQueryHandler : IRequestHandler<ReadQuestionQuery, List<
                                    .Include(q => q.Exam)
                                    .Include(q => q.Subject)
                                    .Include(q => q.Topic)
+                                   .Include(q => q.QuestionVotes)
+                                   .Include(q => q.Answers)
                                    .ToListAsync(cancellationToken: cancellationToken);
 
 
@@ -54,7 +56,10 @@ public class ReadQuestionQueryHandler : IRequestHandler<ReadQuestionQuery, List<
                         .Select(img => new ImageDto(img.ImgPath))
                         .ToList(),
             Tags: new ExamDto(q.Exam.Name, q.Subject.Name, q.Topic.Name),
-            CreatedDate: q.CreatedDate
+            CreatedDate: q.CreatedDate,
+            VoteCount: q.QuestionVotes.Select(qv => qv.QuestionId == q.Id).Count(),
+            AnswerCount: q.Answers.Select(a => a.QuestionId == q.Id).Count()
+
         )).ToList();
 
         return new List<QuestionDto>(res);
