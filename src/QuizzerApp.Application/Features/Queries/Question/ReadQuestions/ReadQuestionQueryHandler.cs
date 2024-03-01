@@ -1,3 +1,4 @@
+using System.Text;
 using Dapper;
 using MediatR;
 using QuizzerApp.Application.Abstacts;
@@ -17,47 +18,74 @@ public class ReadQuestionQueryHandler : IRequestHandler<ReadQuestionQuery, List<
 
     public async Task<List<QuestionResponse>> Handle(ReadQuestionQuery request, CancellationToken cancellationToken)
     {
- string query = @"
-                        SELECT 
-                            q.Id,
-                            q.Title,
-                            q.CreatedDate,
-                            q.Status,
-                            q.Description,
-                            COUNT(a.QuestionId) AS AnswerCount,
-                            COUNT(qv.QuestionId) AS VoteCount,
-                            u.Id ,
-                            u.UserName AS UserName,
-                            u.FirstName AS FirstName,
-                            u.LastName AS LastName,
-                            u.ProfileImg AS ProfileImg,
-                            e.Name AS Exam,
-                            s.Name AS Subject,
-                            t.Name AS Topic
-                        FROM Questions q
-                        JOIN AspNetUsers u ON q.UserId = u.Id
-                        JOIN Exams e ON q.ExamId = e.Id
-                        JOIN Subjects s ON q.SubjectId = s.Id
-                        JOIN Topics t ON q.TopicId = t.Id
-                        LEFT JOIN Answers a ON q.Id = a.QuestionId 
-                        LEFT JOIN QuestionVotes qv ON q.Id = qv.QuestionId
-                        GROUP BY 
-                            q.Id, q.Title, q.CreatedDate, q.Status, q.Description, 
-                            u.Id, u.UserName, u.FirstName, u.LastName, u.ProfileImg, 
-                            e.Name, s.Name, t.Name;
-                         SELECT qi.QuestionId AS QId, qi.ImgPath AS Url FROM QuestionImages qi;
-    ";
+        var whereClause = new StringBuilder("WHERE 1=1");
+
+        if (!string.IsNullOrEmpty(request.Exam))
+        {
+            whereClause.Append(" AND e.Name = @Exam ");
+        }
+
+        if (!string.IsNullOrEmpty(request.Subject))
+        {
+            whereClause.Append(" AND s.Name = @Subject ");
+        }
+
+        if (!string.IsNullOrEmpty(request.Topic))
+        {
+            whereClause.Append(" AND t.Name = @Topic ");
+        }
+
+        if (!string.IsNullOrEmpty(request.UserId))
+        {
+            whereClause.Append(" AND u.Id = @UserId ");
+        }
+
+        var query = new StringBuilder();
+
+        query.AppendFormat(@"
+                    SELECT 
+                        q.Id,
+                        q.Title,
+                        q.CreatedDate,
+                        q.Status,
+                        q.Description,
+                        COUNT(a.QuestionId) AS AnswerCount,
+                        COUNT(qv.QuestionId) AS VoteCount,
+                        u.Id ,
+                        u.UserName AS UserName,
+                        u.FirstName AS FirstName,
+                        u.LastName AS LastName,
+                        u.ProfileImg AS ProfileImg,
+                        e.Name AS Exam,
+                        s.Name AS Subject,
+                        t.Name AS Topic
+                    FROM Questions q
+                    JOIN AspNetUsers u ON q.UserId = u.Id
+                    JOIN Exams e ON q.ExamId = e.Id
+                    JOIN Subjects s ON q.SubjectId = s.Id
+                    JOIN Topics t ON q.TopicId = t.Id
+                    LEFT JOIN Answers a ON q.Id = a.QuestionId 
+                    LEFT JOIN QuestionVotes qv ON q.Id = qv.QuestionId
+                    {0}
+                     GROUP BY 
+                    q.Id, q.Title, q.CreatedDate, q.Status, q.Description, 
+                    u.Id, u.UserName, u.FirstName, u.LastName, u.ProfileImg, 
+                    e.Name, s.Name, t.Name
+                    ORDER BY q.CreatedDate DESC;
+                    SELECT qi.QuestionId AS QId, qi.ImgPath AS Url FROM QuestionImages qi
+                    ", whereClause);
+
 
         using var conn = _connection.Connect();
 
-        using var multi = await conn.QueryMultipleAsync(query);
+        using var multi = await conn.QueryMultipleAsync(query.ToString(), request);
 
         var questionDtos = multi.Read<QuestionResponse, UserDto, TagsDto, QuestionResponse>(
             (question, user, exam) =>
             {
                 question.User = user;
                 question.Tags = exam;
-                
+
 
                 return question;
             },
@@ -65,27 +93,12 @@ public class ReadQuestionQueryHandler : IRequestHandler<ReadQuestionQuery, List<
 
         var images = multi.Read<ImageDto>().ToList();
 
-        foreach (var image in images)
+        images.ForEach(i =>
         {
-            var question = questionDtos.FirstOrDefault(q => q.Id == image.QId);
-            if (question != null)
-            {
-                question.Images.Add(image.Url);
-            }
-        }
-
-
-        if (!string.IsNullOrEmpty(request.Exam))
-            questionDtos = questionDtos.Where(q => string.Equals(q.Tags.Exam, request.Exam)) ?? questionDtos;
-
-        if (!string.IsNullOrEmpty(request.Subject))
-            questionDtos = questionDtos.Where(q => string.Equals(q.Tags.Subject, request.Subject));
-
-        if (!string.IsNullOrEmpty(request.Topic))
-            questionDtos = questionDtos.Where(q => string.Equals(q.Tags.Topic, request.Topic));
-
-        if (!string.IsNullOrEmpty(request.UserId))
-            questionDtos = questionDtos.Where(q => string.Equals(q.User.Id, request.UserId));
+            var question = questionDtos.FirstOrDefault(q => q.Id == i.QId);
+            if (question is not null)
+                question.Images.Add(i.Url);
+        });
 
 
         return questionDtos.ToList();
