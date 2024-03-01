@@ -1,5 +1,4 @@
 using Dapper;
-using Microsoft.EntityFrameworkCore;
 using QuizzenApp.Domain.Entities.QuestionAggregate;
 using QuizzenApp.Domain.Entities.QuestionAggregate.ValueObjects;
 using QuizzerApp.Application.Common.Interfaces;
