@@ -1,6 +1,5 @@
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
-using QuizzenApp.PhotoStock.Services;
 using QuizzerApp.Application.Features.Commands.Question;
 using QuizzerApp.Application.Features.Commands.Question.CreateQuestionImage;
 using QuizzerApp.Application.Features.Commands.Question.CreateQuestionVote;
@@ -15,12 +14,10 @@ namespace QuizzerApp.Api.Controllers;
 public class QuestionController : ControllerBase
 {
     private readonly ISender _sender;
-    private readonly IPhotoService _photo;
 
-    public QuestionController(ISender sender, IPhotoService photo)
+    public QuestionController(ISender sender)
     {
         _sender = sender;
-        _photo = photo;
     }
 
 

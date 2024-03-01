@@ -1,67 +1,94 @@
+using Dapper;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
-using QuizzenApp.Shared.Dto;
+using QuizzerApp.Application.Abstacts;
 using QuizzerApp.Application.Common.Interfaces;
-using QuizzerApp.Application.Dtos.Exam;
-using QuizzerApp.Application.Dtos.Image;
 using QuizzerApp.Application.Dtos.Question;
-using QuizzerApp.Application.Dtos.User;
 
 namespace QuizzerApp.Application.Features.Queries.Question.ReadQuestions;
 
-public class ReadQuestionQueryHandler : IRequestHandler<ReadQuestionQuery, List<QuestionDto>>
+public class ReadQuestionQueryHandler : IRequestHandler<ReadQuestionQuery, List<QuestionResponse>>
 {
-    private readonly IRepositoryManager _manager;
+    private readonly ISqlConnectionFactory _connection;
 
-    public ReadQuestionQueryHandler(IRepositoryManager manager)
+    public ReadQuestionQueryHandler(ISqlConnectionFactory connection)
     {
-        _manager = manager;
+        _connection = connection;
     }
 
-    public async Task<List<QuestionDto>> Handle(ReadQuestionQuery request, CancellationToken cancellationToken)
+    public async Task<List<QuestionResponse>> Handle(ReadQuestionQuery request, CancellationToken cancellationToken)
     {
-        var query = _manager.Question.GetQueriable();
+ string query = @"
+                        SELECT 
+                            q.Id,
+                            q.Title,
+                            q.CreatedDate,
+                            q.Status,
+                            q.Description,
+                            COUNT(a.QuestionId) AS AnswerCount,
+                            COUNT(qv.QuestionId) AS VoteCount,
+                            u.Id ,
+                            u.UserName AS UserName,
+                            u.FirstName AS FirstName,
+                            u.LastName AS LastName,
+                            u.ProfileImg AS ProfileImg,
+                            e.Name AS Exam,
+                            s.Name AS Subject,
+                            t.Name AS Topic
+                        FROM Questions q
+                        JOIN AspNetUsers u ON q.UserId = u.Id
+                        JOIN Exams e ON q.ExamId = e.Id
+                        JOIN Subjects s ON q.SubjectId = s.Id
+                        JOIN Topics t ON q.TopicId = t.Id
+                        LEFT JOIN Answers a ON q.Id = a.QuestionId 
+                        LEFT JOIN QuestionVotes qv ON q.Id = qv.QuestionId
+                        GROUP BY 
+                            q.Id, q.Title, q.CreatedDate, q.Status, q.Description, 
+                            u.Id, u.UserName, u.FirstName, u.LastName, u.ProfileImg, 
+                            e.Name, s.Name, t.Name;
+                         SELECT qi.QuestionId AS QId, qi.ImgPath AS Url FROM QuestionImages qi;
+    ";
+
+        using var conn = _connection.Connect();
+
+        using var multi = await conn.QueryMultipleAsync(query);
+
+        var questionDtos = multi.Read<QuestionResponse, UserDto, TagsDto, QuestionResponse>(
+            (question, user, exam) =>
+            {
+                question.User = user;
+                question.Tags = exam;
+                
+
+                return question;
+            },
+            splitOn: "Id,Id,Exam");
+
+        var images = multi.Read<ImageDto>().ToList();
+
+        foreach (var image in images)
+        {
+            var question = questionDtos.FirstOrDefault(q => q.Id == image.QId);
+            if (question != null)
+            {
+                question.Images.Add(image.Url);
+            }
+        }
+
 
         if (!string.IsNullOrEmpty(request.Exam))
-            query = query.Where(q => string.Equals(q.Exam.Name, request.Exam)) ?? query;
+            questionDtos = questionDtos.Where(q => string.Equals(q.Tags.Exam, request.Exam)) ?? questionDtos;
 
         if (!string.IsNullOrEmpty(request.Subject))
-            query = query.Where(q => string.Equals(q.Subject.Name, request.Subject));
+            questionDtos = questionDtos.Where(q => string.Equals(q.Tags.Subject, request.Subject));
 
         if (!string.IsNullOrEmpty(request.Topic))
-            query = query.Where(q => string.Equals(q.Topic.Name, request.Topic));
+            questionDtos = questionDtos.Where(q => string.Equals(q.Tags.Topic, request.Topic));
 
         if (!string.IsNullOrEmpty(request.UserId))
-            query = query.Where(q => string.Equals(q.UserId, request.UserId));
+            questionDtos = questionDtos.Where(q => string.Equals(q.User.Id, request.UserId));
 
 
-        var questions = await query.Include(q => q.User)
-                                   .Include(q => q.Exam)
-                                   .Include(q => q.Subject)
-                                   .Include(q => q.Topic)
-                                   .Include(q => q.QuestionVotes)
-                                   .Include(q => q.Answers)
-                                   .ToListAsync(cancellationToken: cancellationToken);
+        return questionDtos.ToList();
 
-
-        var res = questions.Select(q => new QuestionDto
-        (
-            Id: q.Id,
-            Title: q.Title,
-            Description: q.Description,
-            Status: q.Status.ToString(),
-            User: new UserDto(q.UserId, q.User.UserName, q.User.FirstName, q.User.LastName,
-            profileImg: q.User.ProfileImg),
-            Images: _manager.Photo.GetDbQuestionImgPaths(q.Id.Value)
-                        .Select(img => new ImageDto(img.ImgPath))
-                        .ToList(),
-            Tags: new ExamDto(q.Exam.Name, q.Subject.Name, q.Topic.Name),
-            CreatedDate: q.CreatedDate,
-            VoteCount: q.QuestionVotes.Select(qv => qv.QuestionId == q.Id).Count(),
-            AnswerCount: q.Answers.Select(a => a.QuestionId == q.Id).Count()
-
-        )).ToList();
-
-        return new List<QuestionDto>(res);
     }
 }
