@@ -1,51 +1,88 @@
-// using MediatR;
-// using Microsoft.EntityFrameworkCore;
-// using QuizzenApp.Domain.Entities.QuestionAggregate.ValueObjects;
-// using QuizzerApp.Application.Common.Interfaces;
-// using QuizzerApp.Application.Dtos.Answer;
-// using QuizzerApp.Application.Dtos.Image;
-// using QuizzerApp.Application.Dtos.User;
-
-// namespace QuizzerApp.Application.Features.Queries.Answer.ReadAnswers;
-
-// public class ReadAnswersQueryHandler : IRequestHandler<ReadAnswersQuery, List<AnswerDto>>
-// {
-//     private readonly IRepositoryManager _manager;
-
-//     public ReadAnswersQueryHandler(IRepositoryManager manager)
-//     {
-//         _manager = manager;
-//     }
-
-//     public async Task<List<AnswerDto>> Handle(ReadAnswersQuery request, CancellationToken cancellationToken)
-//     {
-//         var query = _manager.Answer.GetQueriable();
-
-//         if (!string.IsNullOrEmpty(request.QuestionId))
-//             query = query.Where(a => a.QuestionId == new QuestionId(new Guid(request.QuestionId)));
-
-//         if (!string.IsNullOrEmpty(request.userId))
-//         {
-//             query = query.Where(a => a.UserId == request.userId);
-
-//         }
-//         var answers = await query.Include(a => a.User).ToListAsync(cancellationToken);
+using System.Text;
+using Dapper;
+using MediatR;
+using QuizzerApp.Application.Abstacts;
+using QuizzerApp.Application.Dtos.Answer;
 
 
-//         var res = answers.Select(a => new AnswerDto(
-//             Id: a.Id,
-//             Text: a.Text,
-//             Status: a.Status,
-//             User: new UserDto(a.UserId, a.User.UserName, a.User.FirstName, a.User.LastName,
-//             profileImg: a.User.ProfileImg),
-//             QuestionId: a.QuestionId.Value,
-//             Images: _manager.Photo.GetDbAnswerImgPaths(a.Id.Value)
-//                                   .Select(img => new ImageDto(Url: img.ImgPath))
-//                                   .ToList(),
-//             CreatedDate: a.CreatedDate,
-//             UpdatedDate: a.UpdatedDate
-//         )).ToList();
+namespace QuizzerApp.Application.Features.Queries.Answer.ReadAnswers;
 
-//         return new List<AnswerDto>(res);
-//     }
-// }
+public class ReadAnswersQueryHandler : IRequestHandler<ReadAnswersQuery, List<AnswerReponse>>
+{
+    private readonly ISqlConnectionFactory _connection;
+
+    public ReadAnswersQueryHandler(ISqlConnectionFactory connection)
+    {
+        _connection = connection;
+    }
+
+    public async Task<List<AnswerReponse>> Handle(ReadAnswersQuery request, CancellationToken cancellationToken)
+    {
+        var whereClause = new StringBuilder("WHERE 1=1");
+
+        if (!string.IsNullOrEmpty(request.QuestionId))
+        {
+            whereClause.Append(" AND a.QuestionId = @QuestionId ");
+        }
+
+        if (!string.IsNullOrEmpty(request.userId))
+        {
+            whereClause.Append(" AND a.UserId = @UserId ");
+        }
+
+
+        var query = new StringBuilder();
+
+        query.AppendFormat(@"
+                    SELECT 
+                        a.Id,
+                        a.Text,
+                        a.Status,
+                        a.CreatedDate,
+                        a.QuestionId,
+                        COUNT(qv.AnswerId) AS VoteCount,
+                        u.Id,
+                        u.UserName AS UserName,
+                        u.FirstName AS FirstName,
+                        u.LastName AS LastName,
+                        u.ProfileImg AS ProfileImg
+                    FROM Answers a
+                    JOIN AspNetUsers u ON a.UserId = u.Id
+                    LEFT JOIN AnswerVotes qv ON a.Id = qv.AnswerId
+                    {0}
+                     GROUP BY 
+                    a.Id, a.Text, a.Status, a.CreatedDate, a.QuestionId,
+                    u.Id, u.UserName, u.FirstName, u.LastName, u.ProfileImg
+                    ORDER BY a.CreatedDate DESC;
+                    SELECT ai.AnswerId AS QId, ai.ImgPath AS Url FROM AnswerImages ai
+                    ", whereClause);
+
+        using var conn = _connection.Connect();
+
+        using var multi = await conn.QueryMultipleAsync(query.ToString(), request);
+
+        var questionDtos = multi.Read<AnswerReponse, UserDto, AnswerReponse>(
+            (answer, user) =>
+            {
+                answer.User = user;
+
+
+                return answer;
+            },
+            splitOn: "Id,Id");
+
+        var images = multi.Read<ImageDto>().ToList();
+
+        images.ForEach(i =>
+        {
+            var question = questionDtos.FirstOrDefault(q => q.Id == i.QId);
+            if (question is not null)
+                question.Images.Add(i.Url);
+        });
+
+
+        return questionDtos.ToList();
+
+
+    }
+}
