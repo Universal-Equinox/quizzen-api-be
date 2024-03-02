@@ -1,4 +1,3 @@
-using System.Reflection;
 using QuizzerApp.Infrastructure;
 using QuizzerApp.Application;
 using QuizzenApp.PhotoStock;
