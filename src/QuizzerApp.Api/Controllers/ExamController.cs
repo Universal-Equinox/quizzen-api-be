@@ -1,8 +1,6 @@
-using System.ComponentModel.DataAnnotations;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
-using QuizzerApp.Application.Features.Queries.Exam.GetSubjects;
-using QuizzerApp.Application.Features.Queries.Exam.GetTopics;
+using QuizzerApp.Application.Features.Queries.Exam.GetExams;
 
 namespace QuizzerApp.Api.Controllers;
 
@@ -17,23 +15,13 @@ public class ExamController : ControllerBase
         _sender = sender;
     }
 
-    [HttpGet("subject")]
-    public async Task<IActionResult> GetSubjects([FromQuery][Required] Guid e)
+    [HttpGet()]
+    public async Task<IActionResult> GetExams([FromQuery] GetExamsQuery query)
     {
-        GetSubjectsByExamIdQuery query = new(e);
-
         var res = await _sender.Send(query);
 
         return Ok(res);
     }
 
-    [HttpGet("topic")]
-    public async Task<IActionResult> GetTopics([FromQuery][Required] Guid s)
-    {
-        GetTopicsBySubjectIdQuery query = new(s);
 
-        var res = await _sender.Send(query);
-
-        return Ok(res);
-    }
 }
